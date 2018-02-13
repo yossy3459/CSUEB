@@ -1,0 +1,96 @@
+`timescale 1ns / 1ps
+
+module adcTimingManager(
+    input Clk,
+    input Rst,
+    input [2:0] Fr,
+    input [7:0] D,
+    output CS,
+    output RD,
+    //output BUSY,
+    output CONVST
+    );
+    
+    // declation (internal)
+    reg [3:0] clockCount;
+    // reg [7:0] shapeCount;
+    reg [17:0] frequencyCount;
+    reg dbClock;
+    reg [7:0] value;
+    
+    // declation (output)
+    reg CS;
+    reg RD;
+    //reg BUSY;
+    reg CONVST;
+    
+    // for Freqency
+    //wire [20:0] K;
+    //assign K = 2**12;  
+    wire [17:0] samplingRate;
+    assign samplingRate  = 200000 / (2**Fr);
+    
+    // main process
+        always @(posedge Clk or negedge Rst) begin
+        
+            // Reset => initialize of internal counter
+            if (!Rst) begin
+                clockCount <= 0;
+                // shapeCount <= 0;
+                frequencyCount <= 0;
+                dbClock <= 1;
+                CS <= 0;
+                CONVST <= 0;
+                // BUSY <= 0;
+                RD <= 1;
+                // DB is out.
+            end
+            
+            // main loop
+            else begin
+            
+                // increment
+                frequencyCount <= frequencyCount + 1;
+                
+                if ( frequencyCount == samplingRate ) begin
+                    // shapeCount <= shapeCount + 1;
+                    clockCount <= clockCount + 1;
+                    frequencyCount <= 0;
+                    // frequencyClock <= ~frequencyClock;
+                end
+                
+                // initialize of output
+                if ( clockCount == 0 ) begin
+                    CONVST <= 0;
+                end
+                
+                // If clockCount equals 1, shape module writes DB. 
+                if ( clockCount == 1 ) begin
+                   //  BUSY <= 1;
+                end
+                    
+                if ( clockCount == 2 ) begin
+                    CONVST <= 1; 
+                end
+                
+                if ( clockCount == 6 ) begin
+                    CONVST <= 0;
+                    RD <= 0;
+                end
+                
+                if ( clockCount == 7 ) begin
+                    value <= D;
+                end
+                
+                if ( clockCount == 8 ) begin
+                    CONVST <= 1;
+                    RD <= 1;
+                end
+                
+                if ( clockCount == 12 ) begin
+                    clockCount <= 0;
+                end
+                
+            end
+        end
+endmodule
